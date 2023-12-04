@@ -1,4 +1,4 @@
-[Link]()
+[Link](https://chat.openai.com/c/c9b78a87-98c3-424e-834b-4c756518b3d9)
 
 It looks like the code you've shared is a continuation of the previous code snippet. The new code defines implementations for the `Validator` struct and the `SortedList` struct, along with tests for a sorted list and a sorted validator list in Rust.
 
