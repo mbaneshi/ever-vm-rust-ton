@@ -786,3 +786,851 @@ These explanations provide insights into three more functions from the provided 
 
 
 ***
+
+
+
+Certainly! Let's delve into the details of the mentioned functions:
+
+### 4. `execute_jmpref` Function:
+
+```rust
+pub(super) fn execute_jmpref(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPREF")
+    )?;
+    fetch_reference(engine, CC)?;
+    jmpx(engine, true)
+}
+```
+
+- **Description:**
+  - This function is responsible for executing a jump to the continuation referenced in the first slot of the `CC` (Control Continuation) save list.
+- **Symbols:**
+  - `engine`: A mutable reference to the virtual machine.
+- **Implementation Details:**
+  - **Loading Instruction:**
+    - It loads the `JMPREF` instruction into the virtual machine, indicating a jump to a referenced continuation.
+  - **Fetching Reference:**
+    - It fetches the reference from the `CC` save list using the `fetch_reference` function.
+  - **Jump Execution:**
+    - It performs the jump to the continuation stored in the fetched reference using the `jmpx` function with `true`, indicating a reference jump.
+
+### 5. `execute_jmprefdata` Function:
+
+```rust
+pub(super) fn execute_jmprefdata(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPREFDATA")
+    )?;
+    fetch_reference(engine, CC)?;
+    convert(engine, var!(0), CONTINUATION, CELL)?;
+    jmpxdata(engine)
+}
+```
+
+- **Description:**
+  - This function executes a jump to the continuation referenced in the first slot of the `CC` save list after converting it to a `CELL`.
+- **Symbols:**
+  - `engine`: A mutable reference to the virtual machine.
+- **Implementation Details:**
+  - **Loading Instruction:**
+    - It loads the `JMPREFDATA` instruction into the virtual machine.
+  - **Fetching Reference:**
+    - It fetches the reference from the `CC` save list using the `fetch_reference` function.
+  - **Conversion to CELL:**
+    - It converts the fetched reference to a `CELL` using the `convert` function.
+  - **Jump Execution:**
+    - It performs the jump to the converted continuation using the `jmpxdata` function.
+
+### 6. `execute_jmpx` Function:
+
+```rust
+pub(super) fn execute_jmpx(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPX")
+    )?;
+    fetch_stack(engine, 1)?;
+    jmpx(engine, false)
+}
+```
+
+- **Description:**
+  - This function performs a switch pattern based on the provided continuation.
+- **Symbols:**
+  - `engine`: A mutable reference to the virtual machine.
+- **Implementation Details:**
+  - **Loading Instruction:**
+    - It loads the `JMPX` instruction into the virtual machine.
+  - **Fetching Continuation:**
+    - It fetches a continuation from the stack using the `fetch_stack` function.
+  - **Jump Execution:**
+    - It performs the jump to the fetched continuation using the `jmpx` function with `false`, indicating it's not a reference jump.
+
+### 7. `execute_ifbit_mask` Function:
+
+```rust
+fn execute_ifbit_mask(engine: &mut Engine, name: &'static str, how: u8) -> Status {
+    engine.load_instruction(
+        Instruction::new(name).set_opts(InstructionOptions::Integer(0..32))
+    )?;
+    if how.bit(REF) {
+        fetch_reference(engine, CC)?;
+    } else {
+        fetch_stack(engine, 1)?;
+        engine.cmd.var(0).as_continuation()?;
+    }
+    // ... (rest of the code)
+    Ok(())
+}
+```
+
+- **Description:**
+  - This function handles conditional jumps or calls based on the value of a specific bit in an integer.
+- **Symbols:**
+  - `engine`: A mutable reference to the virtual machine.
+  - `name`: Name of the instruction (`"IFBITS"`, `"IFNBIT"`, etc.).
+  - `how`: A bitmask representing the behavior of the instruction.
+- **Implementation Details:**
+  - **Loading Instruction:**
+    - It loads the specified conditional bit instruction into the virtual machine.
+  - **Fetching Reference or Continuation:**
+    - It fetches either a reference from the `CC` save list or a continuation from the stack based on the bitmask.
+  - **Depth Check:**
+    - It checks if the depth of the `CC` stack is sufficient.
+  - **Bitwise Operation:**
+    - It determines if a specific bit in an integer (specified by the instruction) is zero or not.
+  - **Jump or Call Operation:**
+    - Depending on the conditions, it proceeds with a jump or call operation.
+  - **Result:**
+    - It returns `Ok(())` to indicate success.
+
+These detailed explanations provide a thorough understanding of each function's purpose and how they are implemented. If you have more specific questions or if there's a particular part you'd like further clarification on, feel free to ask!
+
+***
+
+
+Certainly! Let's continue with the explanations for the remaining functions:
+
+### 8. `execute_ifbitjmp` Function:
+
+```rust
+pub(super) fn execute_ifbitjmp(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFBITJMP", 0)
+}
+```
+
+- **Description:**
+  - This function switches the continuation based on whether the nth bit of a value is set or not.
+- **Implementation Details:**
+  - It utilizes the `execute_ifbit_mask` function with a bitmask of `0`, indicating a regular bit check.
+
+### 9. `execute_ifnbitjmp` Function:
+
+```rust
+pub(super) fn execute_ifnbitjmp(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFNBITJMP", INV)
+}
+```
+
+- **Description:**
+  - This function switches the continuation based on whether the nth bit of a value is not set.
+- **Implementation Details:**
+  - It utilizes the `execute_ifbit_mask` function with a bitmask of `INV`, indicating an inverted bit check.
+
+### 10. `execute_ifbitjmpref` Function:
+
+```rust
+pub(super) fn execute_ifbitjmpref(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFBITJMPREF", REF)
+}
+```
+
+- **Description:**
+  - This function switches the continuation based on whether the nth bit of a value is set and performs a reference switch.
+- **Implementation Details:**
+  - It utilizes the `execute_ifbit_mask` function with a bitmask of `REF`, indicating a reference switch.
+
+### 11. `execute_ifnbitjmpref` Function:
+
+```rust
+pub(super) fn execute_ifnbitjmpref(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFNBITJMPREF", REF | INV)
+}
+```
+
+- **Description:**
+  - This function switches the continuation based on whether the nth bit of a value is not set and performs a reference switch.
+- **Implementation Details:**
+  - It utilizes the `execute_ifbit_mask` function with a bitmask of `REF | INV`, indicating an inverted bit check and a reference switch.
+
+### 12. `execute_jmpxargs` Function:
+
+```rust
+pub(super) fn execute_jmpxargs(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPXARGS").set_opts(InstructionOptions::Pargs(0..16))
+    )?;
+    fetch_stack(engine, 1)?;
+    switch(engine, var!(0))
+}
+```
+
+- **Description:**
+  - This function sets the number of arguments for the continuation and then performs a switch.
+- **Implementation Details:**
+  - It loads the `JMPXARGS` instruction, indicating a switch with a specified number of arguments.
+  - It fetches a continuation from the stack.
+  - It performs a switch with the fetched continuation and the specified number of arguments.
+
+### 13. `execute_jmpxva` Function:
+
+```rust
+pub(super) fn execute_jmpxva(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPXVARARGS")
+    )?;
+    fetch_stack(engine, 2)?;
+    fetch_pargs(engine, 0, -1..=254)?;
+    switch(engine, var!(1))
+}
+```
+
+- **Description:**
+  - This function performs a switch with a continuation and variable arguments.
+- **Implementation Details:**
+  - It loads the `JMPXVARARGS` instruction, indicating a switch with variable arguments.
+  - It fetches a continuation and variable arguments from the stack.
+  - It performs a switch with the fetched continuation and variable arguments.
+
+### 14. `execute_repeat` Function:
+
+```rust
+pub(super) fn execute_repeat(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("REPEAT")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function handles a repeat loop, where the body continuation is repeatedly executed a specified number of times.
+- **Implementation Details:**
+  - It loads the `REPEAT` instruction.
+  - It fetches the body continuation and the repeat count from the stack.
+  - If the repeat count is less than or equal to zero, it returns Ok(()).
+  - Otherwise, it sets up the necessary continuations and performs a switch to the body continuation.
+
+### 15. `execute_repeat_break` Function:
+
+```rust
+pub(super) fn execute_repeat_break(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("REPEATBRK")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function handles a repeat loop with a break, allowing for an early exit from the loop.
+- **Implementation Details:**
+  - It loads the `REPEATBRK` instruction.
+  - It fetches the body continuation and the repeat count from the stack.
+  - If the repeat count is less than or equal to zero, it returns Ok(()).
+  - Otherwise, it sets up
+
+ the necessary continuations and performs a switch to the body continuation, with additional setup for a potential break.
+
+These explanations cover functions related to conditional jumps, switches, loops, and returns in the provided code. If you have any specific questions or if you'd like more details on any particular part, feel free to ask!
+
+***
+
+
+
+Certainly! Let's dive deeper into each function, providing a more detailed explanation of their implementation:
+
+### 8. `execute_ifbitjmp` Function:
+
+```rust
+pub(super) fn execute_ifbitjmp(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFBITJMP", 0)
+}
+```
+
+- **Description:**
+  - This function is part of a conditional jump mechanism. It checks whether the nth bit of a value is set and switches the continuation accordingly.
+
+- **Implementation Details:**
+  - It utilizes the `execute_ifbit_mask` function, passing the engine, a name identifier ("IFBITJMP"), and a bitmask of `0`. The bitmask of `0` indicates a regular bit check.
+
+### 9. `execute_ifnbitjmp` Function:
+
+```rust
+pub(super) fn execute_ifnbitjmp(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFNBITJMP", INV)
+}
+```
+
+- **Description:**
+  - Similar to `execute_ifbitjmp`, this function checks whether the nth bit of a value is not set and switches the continuation accordingly.
+
+- **Implementation Details:**
+  - It utilizes `execute_ifbit_mask`, passing the engine, the name identifier ("IFNBITJMP"), and a bitmask of `INV`. The bitmask of `INV` indicates an inverted bit check.
+
+### 10. `execute_ifbitjmpref` Function:
+
+```rust
+pub(super) fn execute_ifbitjmpref(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFBITJMPREF", REF)
+}
+```
+
+- **Description:**
+  - This function is similar to `execute_ifbitjmp`, but it also involves a reference switch when the nth bit is set.
+
+- **Implementation Details:**
+  - It utilizes `execute_ifbit_mask`, passing the engine, the name identifier ("IFBITJMPREF"), and a bitmask of `REF`. The bitmask of `REF` indicates a reference switch.
+
+### 11. `execute_ifnbitjmpref` Function:
+
+```rust
+pub(super) fn execute_ifnbitjmpref(engine: &mut Engine) -> Status {
+    execute_ifbit_mask(engine, "IFNBITJMPREF", REF | INV)
+}
+```
+
+- **Description:**
+  - Similar to `execute_ifbitjmpref`, this function checks whether the nth bit of a value is not set and involves a reference switch.
+
+- **Implementation Details:**
+  - It utilizes `execute_ifbit_mask`, passing the engine, the name identifier ("IFNBITJMPREF"), and a bitmask of `REF | INV`. This combination indicates an inverted bit check and a reference switch.
+
+### 12. `execute_jmpxargs` Function:
+
+```rust
+pub(super) fn execute_jmpxargs(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPXARGS").set_opts(InstructionOptions::Pargs(0..16))
+    )?;
+    fetch_stack(engine, 1)?;
+    switch(engine, var!(0))
+}
+```
+
+- **Description:**
+  - This function facilitates a jump with a specified number of arguments.
+
+- **Implementation Details:**
+  - It loads the `JMPXARGS` instruction, indicating a switch with a specified number of arguments.
+  - It fetches a continuation from the stack.
+  - It performs a switch with the fetched continuation and the specified number of arguments.
+
+### 13. `execute_jmpxva` Function:
+
+```rust
+pub(super) fn execute_jmpxva(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("JMPXVARARGS")
+    )?;
+    fetch_stack(engine, 2)?;
+    fetch_pargs(engine, 0, -1..=254)?;
+    switch(engine, var!(1))
+}
+```
+
+- **Description:**
+  - This function facilitates a jump with a continuation and variable arguments.
+
+- **Implementation Details:**
+  - It loads the `JMPXVARARGS` instruction, indicating a switch with variable arguments.
+  - It fetches a continuation and variable arguments from the stack.
+  - It performs a switch with the fetched continuation and variable arguments.
+
+### 14. `execute_repeat` Function:
+
+```rust
+pub(super) fn execute_repeat(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("REPEAT")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function handles a repeat loop, where the body continuation is repeatedly executed a specified number of times.
+
+- **Implementation Details:**
+  - It loads the `REPEAT` instruction.
+  - It fetches the body continuation and the repeat count from the stack.
+  - If the repeat count is less than or equal to zero, it returns Ok(()).
+  - Otherwise, it sets up the necessary continuations and performs a switch to the body continuation.
+
+### 15. `execute_repeat_break` Function:
+
+```rust
+pub(super) fn execute_repeat_break(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("REPEATBRK")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function handles a repeat loop with a break, allowing for an early exit from the loop.
+
+- **Implementation Details:**
+  - It loads the `REPEATBRK` instruction.
+  - It fetches the body continuation and the repeat count from the stack.
+  - If the repeat count is less than or equal to zero, it returns Ok(()).
+  - Otherwise, it sets up the necessary continuations and performs a switch to the body continuation, with additional setup for a potential break.
+
+These explanations cover the functions related to conditional jumps, switches, loops, and returns in the provided code. If you have specific questions about any part or if you'd like more details on a particular aspect, feel free to ask!
+
+***
+
+
+### 16. `execute_setcontargs` Function:
+
+```rust
+pub(super) fn execute_setcontargs(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTARGS").set_opts(InstructionOptions::ArgumentConstraints)
+    )?;
+    setcont(engine, 0, false)
+}
+```
+
+- **Description:**
+  - This function is responsible for setting up a continuation with specified argument constraints.
+
+- **Implementation Details:**
+  - It loads the `SETCONTARGS` instruction, indicating a continuation with argument constraints.
+  - It calls the `setcont` function, passing the engine, a reference to the continuation index (0), and a flag (false) indicating that it's not a variable argument continuation.
+
+### 17. `execute_setcontva` Function:
+
+```rust
+pub(super) fn execute_setcontva(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTVARARGS")
+    )?;
+    setcont(engine, 2, false)
+}
+```
+
+- **Description:**
+  - This function is responsible for setting up a continuation with variable arguments.
+
+- **Implementation Details:**
+  - It loads the `SETCONTVARARGS` instruction, indicating a continuation with variable arguments.
+  - It calls the `setcont` function, passing the engine, a reference to the continuation index (2), and a flag (false) indicating that it's not a variable argument continuation.
+
+### 18. `execute_setnumvarargs` Function:
+
+```rust
+pub(super) fn execute_setnumvarargs(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETNUMVARARGS")
+    )?;
+    setcont(engine, 1, false)
+}
+```
+
+- **Description:**
+  - This function is responsible for setting up a continuation with a specified number of variable arguments.
+
+- **Implementation Details:**
+  - It loads the `SETNUMVARARGS` instruction, indicating a continuation with a specified number of variable arguments.
+  - It calls the `setcont` function, passing the engine, a reference to the continuation index (1), and a flag (false) indicating that it's not a variable argument continuation.
+
+### 19. `execute_setcontctr` Function:
+
+```rust
+pub(super) fn execute_setcontctr(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTCTR").set_opts(InstructionOptions::ControlRegister)
+    )?;
+    fetch_stack(engine, 2)?;
+    engine.cmd.var(0).as_continuation()?;
+    let creg = engine.cmd.creg();
+    swap(engine, var!(1), savelist!(var!(0), creg))?;
+    engine.cc.stack.push(engine.cmd.vars.remove(0));
+    Ok(())
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with a specified control register.
+
+- **Implementation Details:**
+  - It loads the `SETCONTCTR` instruction, indicating a continuation with a specified control register.
+  - It fetches the necessary items from the stack, checks if the first item is a continuation, retrieves the control register, and performs a swap to set up the continuation.
+
+### 20. `execute_setcontctrx` Function:
+
+```rust
+pub(super) fn execute_setcontctrx(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTCTRX")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with a specified control register and index.
+
+- **Implementation Details:**
+  - It loads the `SETCONTCTRX` instruction.
+  - It fetches items from the stack, including a control register and an index.
+  - It performs a swap to set up the continuation.
+
+### 21. `execute_setexitalt` Function:
+
+```rust
+pub(super) fn execute_setexitalt(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETEXITALT")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up an alternative exit continuation.
+
+- **Implementation Details:**
+  - It loads the `SETEXITALT` instruction.
+  - It fetches items from the stack and performs swaps to set up the alternative exit continuation.
+
+### 22. `execute_setretctr` Function:
+
+```rust
+pub(super) fn execute_setretctr(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETRETCTR").set_opts(InstructionOptions::ControlRegister)
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a return continuation with a specified control register.
+
+- **Implementation Details:**
+  - It loads the `SETRETCTR` instruction, indicating a return continuation with a specified control register.
+  - It fetches the necessary items from the stack, checks if the first item is a continuation, retrieves the control register, and performs a swap to set up the return continuation.
+
+### 23. `execute_thenret` Function:
+
+```rust
+pub(super) fn execute_thenret(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("THENRET")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with an alternative return continuation.
+
+- **Implementation Details:**
+  - It loads the `THENRET` instruction.
+  - It fetches items from the stack and performs swaps to set up the alternative return continuation.
+
+### 24. `execute_thenretalt` Function:
+
+```rust
+pub(super) fn execute_thenretalt(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("THENRETALT")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with an alternative return continuation.
+
+- **Implementation Details:**
+  - It loads the `THENRETALT` instruction.
+  - It fetches items from the stack and performs swaps to set up the alternative return continuation.
+
+### 25. `execute_until` Function:
+
+```rust
+pub(super) fn execute_until(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("UNTIL")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function handles the setup for an `UNTIL` loop.
+
+- **Implementation Details:**
+  - It loads the `UNTIL` instruction.
+  - It fetches items from the stack, creates a new continuation for the loop condition, and sets up the necessary continuations for the loop.
+
+### 26. `execute_until_break` Function:
+
+```rust
+pub(super) fn execute_until_break(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("UNTILBRK")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function handles the setup for an `UNTILBRK` loop with a break condition.
+
+- **Implementation Details:**
+  - It loads the `UNT
+ 
+- ***
+
+
+Certainly! Let's continue with the explanation of the remaining functions in the provided code:
+
+### 16. `execute_setcontargs` Function:
+
+```rust
+pub(super) fn execute_setcontargs(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTARGS").set_opts(InstructionOptions::ArgumentConstraints)
+    )?;
+    setcont(engine, 0, false)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with arguments.
+
+- **Implementation Details:**
+  - It loads the `SETCONTARGS` instruction with specified argument constraints.
+  - It calls the `setcont` function, passing the engine, a continuation index of `0`, and a flag indicating no variable arguments.
+
+### 17. `execute_setcontva` Function:
+
+```rust
+pub(super) fn execute_setcontva(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTVARARGS")
+    )?;
+    setcont(engine, 2, false)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with variable arguments.
+
+- **Implementation Details:**
+  - It loads the `SETCONTVARARGS` instruction.
+  - It calls the `setcont` function, passing the engine, a continuation index of `2`, and a flag indicating variable arguments.
+
+### 18. `execute_setnumvarargs` Function:
+
+```rust
+pub(super) fn execute_setnumvarargs(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETNUMVARARGS")
+    )?;
+    setcont(engine, 1, false)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with a specified number of variable arguments.
+
+- **Implementation Details:**
+  - It loads the `SETNUMVARARGS` instruction.
+  - It calls the `setcont` function, passing the engine, a continuation index of `1`, and a flag indicating no variable arguments.
+
+### 19. `execute_setcontctr` Function:
+
+```rust
+pub(super) fn execute_setcontctr(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTCTR").set_opts(InstructionOptions::ControlRegister)
+    )?;
+    fetch_stack(engine, 2)?;
+    engine.cmd.var(0).as_continuation()?;
+    let creg = engine.cmd.creg();
+    swap(engine, var!(1), savelist!(var!(0), creg))?;
+    engine.cc.stack.push(engine.cmd.vars.remove(0));
+    Ok(())
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with a value from a control register.
+
+- **Implementation Details:**
+  - It loads the `SETCONTCTR` instruction with specified control register options.
+  - It fetches values from the stack and performs a swap to set up the continuation with the control register value.
+
+### 20. `execute_setcontctrx` Function:
+
+```rust
+pub(super) fn execute_setcontctrx(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETCONTCTRX")
+    )?;
+    fetch_stack(engine, 3)?;
+    let creg = engine.cmd.var(0).as_integer()?.into(0..=255)?;
+    // ... (additional checks and swaps)
+    Ok(())
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with a value from a control register, allowing an extended range.
+
+- **Implementation Details:**
+  - It loads the `SETCONTCTRX` instruction.
+  - It fetches values from the stack, checks the control register range, and performs swaps to set up the continuation.
+
+### 21. `execute_setexitalt` Function:
+
+```rust
+pub(super) fn execute_setexitalt(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETEXITALT")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up an exit alternative continuation.
+
+- **Implementation Details:**
+  - It loads the `SETEXITALT` instruction.
+  - It fetches values from the stack, performs swaps, and sets up an exit alternative continuation.
+
+### 22. `execute_setretctr` Function:
+
+```rust
+pub(super) fn execute_setretctr(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("SETRETCTR").set_opts(InstructionOptions::ControlRegister)
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a return continuation with a value from a control register.
+
+- **Implementation Details:**
+  - It loads the `SETRETCTR` instruction with specified control register options.
+  - It fetches a value from the stack and performs a swap to set up the return continuation with the control register value.
+
+### 23. `execute_thenret` Function:
+
+```rust
+pub(super) fn execute_thenret(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("THENRET")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a continuation with a value from a control register for conditional execution.
+
+- **Implementation Details:**
+  - It loads the `THENRET` instruction.
+  - It fetches a value from the stack, performs swaps, and sets up a continuation for conditional execution.
+
+### 24. `execute_thenretalt` Function:
+
+```rust
+pub(super) fn execute_thenretalt(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("THENRETALT")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up an alternative continuation with a value from a control register for conditional execution.
+
+- **Implementation Details:**
+  - It loads the `THENRETALT` instruction.
+  - It fetches a value from the stack, performs swaps, and sets up an alternative continuation for conditional execution.
+
+### 25. `execute_until` Function:
+
+```rust
+pub(super) fn execute_until(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("UNTIL")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a loop with a conditional check.
+
+- **Implementation Details:**
+  - It loads the `UNTIL` instruction.
+  - It fetches a value from the stack, sets up various continuations, and performs a switch to the loop condition.
+
+### 26. `execute_until_break` Function:
+
+```rust
+pub(super) fn execute_until_break(engine: &mut Engine) -> Status {
+    engine.load_instruction(
+        Instruction::new("UNTILBRK")
+    )?;
+    // ... (rest of the code)
+}
+```
+
+- **Description:**
+  - This function sets up a loop with a conditional check and an option for breaking out.
+
+- **Implementation Details:**
+  - It loads the `UNTILBRK` instruction.
+  - It fetches a value from the stack, sets up various continuations, and performs a switch to the loop condition
+ 
+***
+
+
+Certainly! The provided Rust code defines several functions related to continuation manipulation in the context of a virtual machine or interpreter. Here's a summary of the key functionalities:
+
+1. **Continuation Setup:**
+   - Functions like `execute_setcontargs`, `execute_setcontva`, and `execute_setnumvarargs` are responsible for setting up continuations with different argument configurations.
+
+2. **Control Register Handling:**
+   - `execute_setcontctr` and `execute_setcontctrx` set up continuations with values from control registers. The latter allows an extended range for the control register value.
+
+3. **Exit Alternative Continuation:**
+   - `execute_setexitalt` sets up an exit alternative continuation, configuring various save lists and stack operations.
+
+4. **Return Continuation:**
+   - `execute_setretctr` sets up a return continuation with a value from a control register.
+
+5. **Conditional Execution:**
+   - `execute_thenret` and `execute_thenretalt` set up continuations for conditional execution based on a control register value.
+
+6. **Loops:**
+   - `execute_until` and `execute_until_break` set up loops with conditional checks. The latter includes an option for breaking out of the loop.
+
+7. **While Loops:**
+   - Functions like `execute_while`, `execute_while_break`, `execute_whileend`, and `execute_whileend_break` handle the setup and control flow for while loops.
+
+These functions interact with an `Engine` struct, manipulating save lists, control registers, and the program stack. The code exhibits a complex flow of continuation setup and control flow management, typical in interpreters handling high-level abstractions like continuations and loops.
+
